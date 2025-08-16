@@ -202,4 +202,4 @@ DATABASE_URL="file:./dev.db"
 
 ## License
 
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License. # crm_mini
