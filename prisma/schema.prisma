@@ -1,0 +1,172 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User/Authentication
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("user") // admin, user
+  status    String   @default("active") // active, pending, suspended
+  phone     String?
+  company   String?
+  position  String?
+  location  String?
+  website   String?
+  bio       String?
+  avatar    String?
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  leads     Lead[]
+  sales     Sale[]
+  accounts  Account[]
+  customers Customer[]
+  subscription UserSubscription?
+  usage     UserUsage?
+
+  @@map("users")
+}
+
+// User Subscription
+model UserSubscription {
+  id                   String   @id @default(cuid())
+  planId               String   // starter, standard, pro
+  status               String   @default("pending") // active, pending, expired, past_due, cancelled
+  currentPeriodStart   DateTime @default(now())
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  userId String @unique
+
+  @@map("user_subscriptions")
+}
+
+// User Usage Tracking
+model UserUsage {
+  id            String   @id @default(cuid())
+  customers     Int      @default(0)
+  leads         Int      @default(0)
+  landingPages  Int      @default(0)
+  storageUsed   Int      @default(0) // in MB
+  teamMembers   Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  userId String @unique
+
+  @@map("user_usages")
+}
+
+// Customer Management
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String   @unique
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
+  company   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  leads     Lead[]
+  sales     Sale[]
+  accounts  Account[]
+  createdBy User     @relation(fields: [userId], references: [id])
+
+  userId String
+  @@map("customers")
+}
+
+// Lead Management
+model Lead {
+  id               String    @id @default(cuid())
+  interestedProduct String
+  quantity         String
+  leadSource       String    // website, referral, social-media, cold-call, email, other
+  status           String    @default("new") // new, contacted, interested, converted, lost
+  followUpDate     DateTime?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id])
+  createdBy User    @relation(fields: [userId], references: [id])
+
+  customerId String
+  userId     String
+
+  @@map("leads")
+}
+
+// Sales Management
+model Sale {
+  id          String   @id @default(cuid())
+  product     String
+  quantity    Int
+  amount      Float
+  currency    String   @default("USD")
+  status      String   @default("pending") // pending, completed, cancelled, refunded
+  saleDate    DateTime @default(now())
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id])
+  createdBy User    @relation(fields: [userId], references: [id])
+
+  customerId String
+  userId     String
+
+  @@map("sales")
+}
+
+// Account Management
+model Account {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // income, expense
+  category    String   // salary, commission, marketing, office, travel, etc.
+  amount      Float
+  currency    String   @default("USD")
+  date        DateTime @default(now())
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  customer Customer? @relation(fields: [customerId], references: [id])
+  createdBy User     @relation(fields: [userId], references: [id])
+
+  customerId String?
+  userId     String
+
+  @@map("accounts")
+}
