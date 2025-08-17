@@ -96,60 +96,60 @@ export async function GET(request: NextRequest) {
 }
 
 // POST - Create new account entry
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const validatedData = accountSchema.parse(body)
+// export async function POST(request: NextRequest) {
+//   try {
+//     const body = await request.json()
+//     const validatedData = accountSchema.parse(body)
 
-    // Check if customer exists if provided
-    if (validatedData.customerId) {
-      const customer = await prisma.customer.findUnique({
-        where: { id: validatedData.customerId },
-      })
+//     // Check if customer exists if provided
+//     if (validatedData.customerId) {
+//       const customer = await prisma.customer.findUnique({
+//         where: { id: validatedData.customerId },
+//       })
 
-      if (!customer) {
-        return NextResponse.json(
-          { error: 'Customer not found' },
-          { status: 404 }
-        )
-      }
-    }
+//       if (!customer) {
+//         return NextResponse.json(
+//           { error: 'Customer not found' },
+//           { status: 404 }
+//         )
+//       }
+//     }
 
-    const account = await prisma.account.create({
-      data: {
-        ...validatedData,
-        date: validatedData.date ? new Date(validatedData.date) : new Date(),
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            company: true,
-          },
-        },
-      },
-    })
+//     const account = await prisma.account.create({
+//       data: {
+//         ...validatedData,
+//         date: validatedData.date ? new Date(validatedData.date) : new Date(),
+//       },
+//       include: {
+//         customer: {
+//           select: {
+//             id: true,
+//             name: true,
+//             email: true,
+//             phone: true,
+//             company: true,
+//           },
+//         },
+//       },
+//     })
 
-    return NextResponse.json({
-      success: true,
-      message: 'Account entry created successfully',
-      account,
-    }, { status: 201 })
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
-        { status: 400 }
-      )
-    }
+//     return NextResponse.json({
+//       success: true,
+//       message: 'Account entry created successfully',
+//       account,
+//     }, { status: 201 })
+//   } catch (error) {
+//     if (error instanceof z.ZodError) {
+//       return NextResponse.json(
+//         { error: 'Validation error', details: error.errors },
+//         { status: 400 }
+//       )
+//     }
 
-    console.error('Create account error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
-} 
+//     console.error('Create account error:', error)
+//     return NextResponse.json(
+//       { error: 'Internal server error' },
+//       { status: 500 }
+//     )
+//   }
+// } 
