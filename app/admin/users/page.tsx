@@ -46,12 +46,14 @@ export default function AdminUsersPage() {
   const loadUsers = async () => {
     try {
       setIsLoading(true)
-      const [usersData, statsData] = await Promise.all([
+      const [usersData] = await Promise.all([
         userService.getUsers(),
-        userService.getUserStats()
+        // userService.getUserStats()
       ])
+      console.log(usersData, "usersData") 
+      // console.log(statsData, "statsData56")
       setUsers(usersData)
-      setStats(statsData)
+      // setStats(statsData)
     } catch (error) {
       console.error('Error loading users:', error)
       toast.error('Failed to load users', {
@@ -74,7 +76,7 @@ export default function AdminUsersPage() {
   // Simple function to calculate days until renewal
   const getDaysUntilRenewal = (subscription: any) => {
     const now = new Date()
-    const endDate = new Date(subscription.currentPeriodEnd)
+    const endDate = new Date(subscription?.currentPeriodEnd)
     const diffTime = endDate.getTime() - now.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     return diffDays > 0 ? diffDays : 0
@@ -288,38 +290,38 @@ export default function AdminUsersPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {getSubscriptionIcon(user.subscription.status)}
+                          {getSubscriptionIcon(user?.subscription?.status)}
                           <Badge className={
-                            user.subscription.status === 'active' ? 'bg-green-100 text-green-800' :
-                            user.subscription.status === 'expired' ? 'bg-red-100 text-red-800' :
-                            user.subscription.status === 'past_due' ? 'bg-orange-100 text-orange-800' :
+                            user.subscription?.status === 'active' ? 'bg-green-100 text-green-800' :
+                            user.subscription?.status === 'expired' ? 'bg-red-100 text-red-800' :
+                            user.subscription?.status === 'past_due' ? 'bg-orange-100 text-orange-800' :
                             'bg-gray-100 text-gray-800'
                           }>
-                            {user.subscription.status}
+                            {user.subscription?.status}
                           </Badge>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
                           <p className="font-medium">
-                            {user.subscription.planId === 'starter' ? 'Starter' :
-                             user.subscription.planId === 'standard' ? 'Standard' :
-                             user.subscription.planId === 'pro' ? 'Professional' : user.subscription.planId}
+                            {user.subscription?.planId === 'starter' ? 'Starter' :
+                             user.subscription?.planId === 'standard' ? 'Standard' :
+                             user.subscription?.planId === 'pro' ? 'Professional' : user.subscription?.planId}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            ₹{user.subscription.planId === 'starter' ? '1,500' :
-                               user.subscription.planId === 'standard' ? '2,000' :
-                               user.subscription.planId === 'pro' ? '3,000' : '0'}/month
+                            ₹{user.subscription?.planId === 'starter' ? '1,500' :
+                               user.subscription?.planId === 'standard' ? '2,000' :
+                               user.subscription?.planId === 'pro' ? '3,000' : '0'}/month
                           </p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
                           <p className="text-sm">
-                            {new Date(user.subscription.currentPeriodEnd).toLocaleDateString()}
+                            {new Date(user.subscription?.currentPeriodEnd).toLocaleDateString()}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {getDaysUntilRenewal(user.subscription)} days left
+                            {getDaysUntilRenewal(user?.subscription)} days left
                           </p>
                         </div>
                       </TableCell>
@@ -328,9 +330,9 @@ export default function AdminUsersPage() {
                           <p>{user.usage.customers} customers</p>
                           <p>{user.usage.leads} leads</p>
                           <p>{user.usage.landingPages} / {
-                            user.subscription.planId === 'starter' ? '1' :
-                            user.subscription.planId === 'standard' ? '3' :
-                            user.subscription.planId === 'pro' ? '8' : '0'
+                            user.subscription?.planId === 'starter' ? '1' :
+                            user.subscription?.planId === 'standard' ? '3' :
+                            user.subscription?.planId === 'pro' ? '8' : '0'
                           } landing pages</p>
                         </div>
                       </TableCell>
@@ -354,7 +356,7 @@ export default function AdminUsersPage() {
                               Suspend
                             </Button>
                           )}
-                          {user.subscription.status === "expired" && (
+                          {user.subscription?.status === "expired" && (
                             <Button 
                               size="sm"
                               onClick={() => handleExtendSubscription(user.id)}

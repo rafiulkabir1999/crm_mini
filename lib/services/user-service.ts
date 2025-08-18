@@ -135,7 +135,7 @@ class UserService {
       if (!result.success || !result.data) {
         throw new Error(result.message || 'Failed to fetch users')
       }
-      
+      console.log(result, "result.data")
       return result.data
     } catch (error) {
       console.error('Error fetching users:', error)
@@ -247,13 +247,19 @@ class UserService {
   }> {
     try {
       const users = await this.getUsers()
-      
-      return {
-        total: users.length,
-        active: users.filter(u => u.status === 'active').length,
-        suspended: users.filter(u => u.status === 'suspended').length,
-        expired: users.filter(u => u.subscription.status === 'expired').length,
-      }
+      console.log(users, "userGetUserStats ***********")
+   const stats = {
+  total: users.length,
+  active: users.filter(u => u.status === 'active').length,
+  suspended: users.filter(u => u.status === 'suspended').length,
+  expired: users.filter(u => u.subscription.status === 'expired').length,
+}
+
+// Log to console
+console.log("User stats:", stats)
+
+return stats
+
     } catch (error) {
       console.error('Error fetching user stats:', error)
       throw error
