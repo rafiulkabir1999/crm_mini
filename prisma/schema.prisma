@@ -12,12 +12,12 @@ datasource db {
 
 // User/Authentication
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String    @id @default(cuid())
+  email     String    @unique
   password  String
   name      String
-  role      String   @default("user") // admin, user
-  status    String   @default("active") // active, pending, suspended
+  role      String    @default("user") // admin, user
+  status    String    @default("active") // active, pending, suspended
   phone     String?
   company   String?
   position  String?
@@ -26,30 +26,30 @@ model User {
   bio       String?
   avatar    String?
   lastLogin DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   // Relations
-  leads     Lead[]
-  sales     Sale[]
-  accounts  Account[]
-  customers Customer[]
+  leads        Lead[]
+  sales        Sale[]
+  accounts     Account[]
+  customers    Customer[]
   subscription UserSubscription?
-  usage     UserUsage?
+  usage        UserUsage?
 
   @@map("users")
 }
 
 // User Subscription
 model UserSubscription {
-  id                   String   @id @default(cuid())
-  planId               String   // starter, standard, pro
-  status               String   @default("pending") // active, pending, expired, past_due, cancelled
-  currentPeriodStart   DateTime @default(now())
-  currentPeriodEnd     DateTime
-  cancelAtPeriodEnd    Boolean  @default(false)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  planId             String // starter, standard, pro
+  status             String   @default("pending") // active, pending, expired, past_due, cancelled
+  currentPeriodStart DateTime @default(now())
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -61,14 +61,14 @@ model UserSubscription {
 
 // User Usage Tracking
 model UserUsage {
-  id            String   @id @default(cuid())
-  customers     Int      @default(0)
-  leads         Int      @default(0)
-  landingPages  Int      @default(0)
-  storageUsed   Int      @default(0) // in MB
-  teamMembers   Int      @default(1)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  customers    Int      @default(0)
+  leads        Int      @default(0)
+  landingPages Int      @default(0)
+  storageUsed  Int      @default(0) // in MB
+  teamMembers  Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -97,27 +97,28 @@ model Customer {
   leads     Lead[]
   sales     Sale[]
   accounts  Account[]
-  createdBy User     @relation(fields: [userId], references: [id])
+  createdBy User      @relation(fields: [userId], references: [id])
 
   userId String
+
   @@map("customers")
 }
 
 // Lead Management
 model Lead {
-  id               String    @id @default(cuid())
+  id                String    @id @default(cuid())
   interestedProduct String
-  quantity         String
-  leadSource       String    // website, referral, social-media, cold-call, email, other
-  status           String    @default("new") // new, contacted, interested, converted, lost
-  followUpDate     DateTime?
-  notes            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  quantity          String
+  leadSource        String // website, referral, social-media, cold-call, email, other
+  status            String    @default("new") // new, contacted, interested, converted, lost
+  followUpDate      DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   // Relations
-  customer Customer @relation(fields: [customerId], references: [id])
-  createdBy User    @relation(fields: [userId], references: [id])
+  customer  Customer @relation(fields: [customerId], references: [id])
+  createdBy User     @relation(fields: [userId], references: [id])
 
   customerId String
   userId     String
@@ -127,20 +128,20 @@ model Lead {
 
 // Sales Management
 model Sale {
-  id          String   @id @default(cuid())
-  product     String
-  quantity    Int
-  amount      Float
-  currency    String   @default("USD")
-  status      String   @default("pending") // pending, completed, cancelled, refunded
-  saleDate    DateTime @default(now())
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  product   String
+  quantity  Int
+  amount    Float
+  currency  String   @default("USD")
+  status    String   @default("pending") // pending, completed, cancelled, refunded
+  saleDate  DateTime @default(now())
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  customer Customer @relation(fields: [customerId], references: [id])
-  createdBy User    @relation(fields: [userId], references: [id])
+  customer  Customer @relation(fields: [customerId], references: [id])
+  createdBy User     @relation(fields: [userId], references: [id])
 
   customerId String
   userId     String
@@ -152,8 +153,8 @@ model Sale {
 model Account {
   id          String   @id @default(cuid())
   name        String
-  type        String   // income, expense
-  category    String   // salary, commission, marketing, office, travel, etc.
+  type        String // income, expense
+  category    String // salary, commission, marketing, office, travel, etc.
   amount      Float
   currency    String   @default("USD")
   date        DateTime @default(now())
@@ -162,11 +163,89 @@ model Account {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  customer Customer? @relation(fields: [customerId], references: [id])
-  createdBy User     @relation(fields: [userId], references: [id])
+  customer  Customer? @relation(fields: [customerId], references: [id])
+  createdBy User      @relation(fields: [userId], references: [id])
 
   customerId String?
   userId     String
 
   @@map("accounts")
+}
+
+//LandingPage
+model LandingPage {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  coverPhoto         String
+  profilePhoto       String
+  caption            String
+  brandInfo          String
+  productName        String
+  productImage       String
+  productDescription String
+  price              Float
+  showQuantity       Boolean  @default(true)
+  showAddress        Boolean  @default(true)
+  footerText         String
+  slug               String?  @unique
+  published          Boolean  @default(false)
+  analytics          Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Product {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  status      String          @default("active")
+  images      ProductImage[]  // relation to ProductImage
+  reviews     Review[]
+  packages    PackageProduct[] // many-to-many via PackageProduct
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  url       String
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Package {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  basePrice   Float            @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  products    PackageProduct[] // many-to-many via PackageProduct
+  reviews     Review[]
+}
+
+model PackageProduct {
+  id        String  @id @default(uuid())
+  packageId String
+  productId String
+  quantity  Int     @default(1)
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, productId])
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  customer   String
+  rating     Int
+  comment    String?
+  productId  String?
+  packageId  String?
+  createdAt  DateTime @default(now())
+
+  product Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  package Package? @relation(fields: [packageId], references: [id], onDelete: Cascade)
 }
