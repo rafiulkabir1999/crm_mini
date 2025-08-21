@@ -1,28 +1,53 @@
-"use client"
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { apiService } from "@/lib/api";
 
 export default function CreateProductPage() {
   const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Read user ID from localStorage
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setUserId(parsedUser.id);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!userId) {
+      alert("User not logged in");
+      return;
+    }
+
     setLoading(true);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
 
-    const formData = new FormData(e.currentTarget);
+    // Convert FormData to plain object for apiService
+    const productData: any = {
+      name: formData.get("name"),
+      description: formData.get("description"),
+      price: parseFloat(formData.get("price") as string),
+      userId, // use ID from localStorage
+      images: formData.getAll("images"), // array of files
+    };
 
-    const res = await fetch("/api/products", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-    console.log("Created:", data);
-    setLoading(false);
+    try {
+      const newProduct = await apiService.createProduct(productData);
+      console.log("Created Product:", newProduct);
+      form.reset();
+    } catch (err) {
+      console.error("Error creating product:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -36,17 +61,12 @@ export default function CreateProductPage() {
 
         <div>
           <Label>Description</Label>
-          <Textarea name="description" placeholder="Product description" />
+          <Input name="description" placeholder="Description" />
         </div>
 
         <div>
           <Label>Price</Label>
           <Input name="price" type="number" step="0.01" placeholder="Price" required />
-        </div>
-
-        <div>
-          <Label>Status</Label>
-          <Input name="status" placeholder="active/inactive" defaultValue="active" />
         </div>
 
         <div>

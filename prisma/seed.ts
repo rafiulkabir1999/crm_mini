@@ -1,219 +1,138 @@
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
-
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Starting database seed...')
+  console.log('🌱 Seeding database...')
 
-  // Create admin user
-  const adminPassword = await bcrypt.hash('admin123', 12)
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
-    update: {},
-    create: {
+  // ----------------- Subscription Plans -----------------
+  const plans = [
+    {
+      id: 'starter',
+      name: 'Starter',
+      price: 1500,
+      landingPages: 1,
+      standardPages: 3,
+      storage: 1024,
+      teamMembers: 1
+    },
+    {
+      id: 'standard',
+      name: 'Standard',
+      price: 2000,
+      landingPages: 3,
+      standardPages: 8,
+      storage: 5120,
+      teamMembers: 3
+    },
+    {
+      id: 'pro',
+      name: 'Professional',
+      price: 3000,
+      landingPages: 8,
+      standardPages: -1,
+      storage: 20480,
+      teamMembers: -1
+    }
+  ]
+
+  for (const plan of plans) {
+    await prisma.subscriptionPlan.upsert({
+      where: { id: plan.id },
+      update: {},
+      create: plan
+    })
+  }
+
+  // ----------------- Users -----------------
+  const users = [
+    {
       email: 'admin@example.com',
-      password: adminPassword,
+      password: 'admin123',
       name: 'Admin User',
       role: 'admin',
+      status: 'active'
     },
-  })
-
-  // Create regular user
-  const userPassword = await bcrypt.hash('user123', 12)
-  const regularUser = await prisma.user.upsert({
-    where: { email: 'user@example.com' },
-    update: {},
-    create: {
+    {
       email: 'user@example.com',
-      password: userPassword,
+      password: 'user123',
       name: 'Regular User',
       role: 'user',
+      status: 'active'
     },
-  })
+    {
+      email: 'suspended@example.com',
+      password: 'suspend123',
+      name: 'Suspended User',
+      role: 'user',
+      status: 'suspended'
+    }
+  ]
 
-  console.log('✅ Users created')
+  for (const u of users) {
+    const user = await prisma.user.upsert({
+      where: { email: u.email },
+      update: {},
+      create: u
+    })
 
-  // Create sample customers
-  const customers = await Promise.all([
-    prisma.customer.upsert({
-      where: { phone: '+1234567890' },
+    // ----------------- User Subscriptions -----------------
+    await prisma.userSubscription.upsert({
+      where: { userId: user.id },
       update: {},
       create: {
-        name: 'John Doe',
-        email: 'john@example.com',
-        phone: '+1234567890',
-        address: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        zipCode: '10001',
-        company: 'Tech Corp',
-        notes: 'Potential high-value customer',
-        userId: adminUser.id,
-      },
-    }),
-    prisma.customer.upsert({
-      where: { phone: '+1987654321' },
+        userId: user.id,
+        planId: u.role === 'admin' ? 'pro' : 'starter',
+        status: u.status === 'active' ? 'active' : 'pending',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        cancelAtPeriodEnd: false
+      }
+    })
+
+    // ----------------- User Usage -----------------
+    await prisma.userUsage.upsert({
+      where: { userId: user.id },
       update: {},
       create: {
-        name: 'Jane Smith',
-        email: 'jane@example.com',
-        phone: '+1987654321',
-        address: '456 Oak Ave',
-        city: 'Los Angeles',
-        state: 'CA',
-        zipCode: '90210',
-        company: 'Design Studio',
-        notes: 'Interested in premium services',
-        userId: adminUser.id,
-      },
-    }),
-    prisma.customer.upsert({
-      where: { phone: '+1555123456' },
+        userId: user.id,
+        customers: 0,
+        leads: 0,
+        landingPages: 0,
+        storageUsed: 0,
+        teamMembers: 1
+      }
+    })
+  }
+
+  // ----------------- Sample Products -----------------
+  const products = [
+    { name: 'Product A', description: 'First product', price: 100 },
+    { name: 'Product B', description: 'Second product', price: 200 },
+    { name: 'Product C', description: 'Third product', price: 300 }
+  ]
+
+  for (const p of products) {
+    await prisma.product.upsert({
+      where: { id: p.name }, // using name as unique key for simplicity
       update: {},
       create: {
-        name: 'Bob Johnson',
-        email: 'bob@example.com',
-        phone: '+1555123456',
-        address: '789 Pine Rd',
-        city: 'Chicago',
-        state: 'IL',
-        zipCode: '60601',
-        company: 'Marketing Agency',
-        notes: 'Regular customer',
-        userId: regularUser.id,
-      },
-    }),
-  ])
+        id: p.name,
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        status: 'active'
+      }
+    })
+  }
 
-  console.log('✅ Customers created')
-
-  // Create sample leads
-  const leads = await Promise.all([
-    prisma.lead.create({
-      data: {
-        interestedProduct: 'Premium Software License',
-        quantity: '5',
-        leadSource: 'website',
-        status: 'interested',
-        followUpDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        notes: 'Very interested in enterprise features',
-        customerId: customers[0].id,
-        userId: adminUser.id,
-      },
-    }),
-    prisma.lead.create({
-      data: {
-        interestedProduct: 'Design Consultation',
-        quantity: '1',
-        leadSource: 'referral',
-        status: 'contacted',
-        notes: 'Referred by existing customer',
-        customerId: customers[1].id,
-        userId: adminUser.id,
-      },
-    }),
-    prisma.lead.create({
-      data: {
-        interestedProduct: 'Marketing Campaign',
-        quantity: '3',
-        leadSource: 'social-media',
-        status: 'new',
-        notes: 'Found us through LinkedIn',
-        customerId: customers[2].id,
-        userId: regularUser.id,
-      },
-    }),
-  ])
-
-  console.log('✅ Leads created')
-
-  // Create sample sales
-  const sales = await Promise.all([
-    prisma.sale.create({
-      data: {
-        product: 'Basic Software License',
-        quantity: 2,
-        amount: 199.99,
-        currency: 'USD',
-        status: 'completed',
-        saleDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-        notes: 'Quick sale, satisfied customer',
-        customerId: customers[0].id,
-        userId: adminUser.id,
-      },
-    }),
-    prisma.sale.create({
-      data: {
-        product: 'Premium Support Package',
-        quantity: 1,
-        amount: 299.99,
-        currency: 'USD',
-        status: 'pending',
-        saleDate: new Date(),
-        notes: 'Annual support contract',
-        customerId: customers[1].id,
-        userId: adminUser.id,
-      },
-    }),
-  ])
-
-  console.log('✅ Sales created')
-
-  // Create sample accounts
-  const accounts = await Promise.all([
-    prisma.account.create({
-      data: {
-        name: 'Software License Revenue',
-        type: 'income',
-        category: 'software-sales',
-        amount: 399.98,
-        currency: 'USD',
-        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        description: 'Revenue from software license sales',
-        customerId: customers[0].id,
-        userId: adminUser.id,
-      },
-    }),
-    prisma.account.create({
-      data: {
-        name: 'Office Supplies',
-        type: 'expense',
-        category: 'office',
-        amount: 150.00,
-        currency: 'USD',
-        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        description: 'Monthly office supplies',
-        userId: adminUser.id,
-      },
-    }),
-    prisma.account.create({
-      data: {
-        name: 'Marketing Campaign',
-        type: 'expense',
-        category: 'marketing',
-        amount: 500.00,
-        currency: 'USD',
-        date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-        description: 'Digital marketing campaign costs',
-        userId: regularUser.id,
-      },
-    }),
-  ])
-
-  console.log('✅ Accounts created')
-
-  console.log('🎉 Database seeded successfully!')
-  console.log('📧 Login credentials:')
-  console.log('   Admin: admin@example.com / admin123')
-  console.log('   User: user@example.com / user123')
+  console.log('✅ Database seeded successfully!')
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Error seeding database:', e)
+  .catch(e => {
+    console.error(e)
     process.exit(1)
   })
   .finally(async () => {
     await prisma.$disconnect()
-  }) 
+  })

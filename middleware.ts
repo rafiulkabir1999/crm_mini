@@ -1,43 +1,46 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { checkSubscriptionStatus } from '@/lib/subscription-checker'
+import { verifyToken } from '@/lib/jwt'
 
-// Paths that don't require subscription check
 const publicPaths = [
   '/login',
   '/signup',
   '/pricing',
   '/contact',
-  '/api/auth',
-  '/api/webhooks',
   '/_next',
   '/favicon.ico',
+  '/api/auth/login',
+  '/api/webhooks',
   '/api/cron'
 ]
 
-// Paths that are always accessible (even for suspended users)
-const alwaysAccessiblePaths = [
-  '/billing',
-  '/settings',
-  '/api/billing',
-  '/api/settings'
-]
+export function middleware(req: NextRequest) {
+  const url = req.nextUrl.clone()
 
-export function middleware(request: NextRequest) {
-  // Temporarily disable middleware to fix login issues
-  // TODO: Re-enable once auth system is properly integrated with cookies
+  // Skip public paths
+  if (publicPaths.some(path => req.nextUrl.pathname.startsWith(path))) {
+    return NextResponse.next()
+  }
+
+  // Only protect API routes
+  if (req.nextUrl.pathname.startsWith('/api')) {
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const token = authHeader.substring(7)
+    const decoded = verifyToken(token)
+
+    if (!decoded) {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 })
+    }
+
+    // Optionally, attach user info to request headers for downstream API
+    // req.headers.set('x-user-id', decoded.userId) // Not directly mutable in NextRequest
+    // For server functions, use your route to read token again
+  }
+
+  // All other requests allowed
   return NextResponse.next()
-}
-
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
-  ],
 }

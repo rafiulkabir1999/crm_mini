@@ -44,7 +44,7 @@ export default function LoginPage() {
 
     try {
       const success = await login(data.email, data.password)
-      
+      console.log(success,"success login page")
       if (success) {
         router.push("/")
       } else {

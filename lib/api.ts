@@ -63,11 +63,12 @@ class ApiService {
 
     // Add user ID to query params for endpoints that need it
     let requestUrl = url
-    if (typeof window !== 'undefined' && user.id && !url.includes('?')) {
-      requestUrl = `${url}?userId=${user.id}`
-    }
+    // if (typeof window !== 'undefined' && user.id && !url.includes('?')) {
+    //   requestUrl = `${url}?userId=${user.id}`
+    // }
 
     const response = await fetch(requestUrl, config)
+    console.log(response,"response from api/me")
     const data = await response.json()
 
     if (!response.ok) {
@@ -208,6 +209,40 @@ class ApiService {
       body: JSON.stringify(accountData),
     })
   }
+
+  // Product methods
+async getProducts(params?: { page?: number; limit?: number; search?: string; status?: string }) {
+  const queryParams = new URLSearchParams()
+  if (params?.page) queryParams.set('page', params.page.toString())
+  if (params?.limit) queryParams.set('limit', params.limit.toString())
+  if (params?.search) queryParams.set('search', params.search)
+  if (params?.status) queryParams.set('status', params.status)
+  
+  return this.request(`/products?${queryParams.toString()}`)
+}
+
+async getProduct(id: string) {
+  return this.request(`/products/${id}`)
+}
+
+async createProduct(productData: any) {
+  return this.request('/products', {
+    method: 'POST',
+    body: JSON.stringify(productData),
+  })
+}
+
+async updateProduct(id: string, productData: any) {
+  return this.request(`/products/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(productData),
+  })
+}
+
+async deleteProduct(id: string) {
+  return this.request(`/products/${id}`, { method: 'DELETE' })
+}
+
 }
 
 export const apiService = new ApiService() 
