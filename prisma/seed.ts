@@ -1,138 +1,121 @@
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
+import bcrypt from "bcryptjs";
+import prisma from "@/lib/prisma";
 
 async function main() {
-  console.log('🌱 Seeding database...')
-
-  // ----------------- Subscription Plans -----------------
-  const plans = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      price: 1500,
+  // Create Subscription Plans
+  const basicPlan = await prisma.subscriptionPlan.create({
+    data: {
+      id: "basic",
+      name: "Basic",
+      price: 0,
       landingPages: 1,
-      standardPages: 3,
-      storage: 1024,
-      teamMembers: 1
+      standardPages: 5,
+      storage: 100,
+      teamMembers: 1,
     },
-    {
-      id: 'standard',
-      name: 'Standard',
-      price: 2000,
-      landingPages: 3,
-      standardPages: 8,
-      storage: 5120,
-      teamMembers: 3
+  });
+
+  const proPlan = await prisma.subscriptionPlan.create({
+    data: {
+      id: "pro",
+      name: "Pro",
+      price: 29.99,
+      landingPages: 10,
+      standardPages: 50,
+      storage: 1000,
+      teamMembers: 5,
     },
-    {
-      id: 'pro',
-      name: 'Professional',
-      price: 3000,
-      landingPages: 8,
-      standardPages: -1,
-      storage: 20480,
-      teamMembers: -1
-    }
-  ]
+  });
 
-  for (const plan of plans) {
-    await prisma.subscriptionPlan.upsert({
-      where: { id: plan.id },
-      update: {},
-      create: plan
-    })
-  }
-
-  // ----------------- Users -----------------
-  const users = [
-    {
-      email: 'admin@example.com',
-      password: 'admin123',
-      name: 'Admin User',
-      role: 'admin',
-      status: 'active'
+  // Create a User
+  const hashedPassword = await bcrypt.hash("password123", 10);
+  const user = await prisma.user.create({
+    data: {
+      email: "admin@example.com",
+      password: hashedPassword,
+      name: "Admin User",
+      role: "admin",
+      status: "active",
+      products: {
+        create: [], // will attach later
+      },
+      subscription: {
+        create: {
+          planId: proPlan.id,
+          status: "active",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+        },
+      },
+      usage: {
+        create: {},
+      },
     },
-    {
-      email: 'user@example.com',
-      password: 'user123',
-      name: 'Regular User',
-      role: 'user',
-      status: 'active'
+  });
+
+  // Create Products with Images
+  const product1 = await prisma.product.create({
+    data: {
+      name: "Product A",
+      description: "First demo product",
+      price: 49.99,
+      images: {
+        create: [
+          { url: "/uploads/product-a-1.png" },
+          { url: "/uploads/product-a-2.png" },
+        ],
+      },
+      owners: {
+        create: {
+          userId: user.id,
+        },
+      },
     },
-    {
-      email: 'suspended@example.com',
-      password: 'suspend123',
-      name: 'Suspended User',
-      role: 'user',
-      status: 'suspended'
-    }
-  ]
+  });
 
-  for (const u of users) {
-    const user = await prisma.user.upsert({
-      where: { email: u.email },
-      update: {},
-      create: u
-    })
+  const product2 = await prisma.product.create({
+    data: {
+      name: "Product B",
+      description: "Second demo product",
+      price: 99.99,
+      images: {
+        create: [{ url: "/uploads/product-b.png" }],
+      },
+      owners: {
+        create: {
+          userId: user.id,
+        },
+      },
+    },
+  });
 
-    // ----------------- User Subscriptions -----------------
-    await prisma.userSubscription.upsert({
-      where: { userId: user.id },
-      update: {},
-      create: {
-        userId: user.id,
-        planId: u.role === 'admin' ? 'pro' : 'starter',
-        status: u.status === 'active' ? 'active' : 'pending',
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        cancelAtPeriodEnd: false
-      }
-    })
+  // Create Landing Page with attached Product
+  const landingPage = await prisma.landingPage.create({
+    data: {
+      name: "Landing Page 1",
+      url: "landing-page-1",
+      description: "Demo landing page",
+      users: {
+        create: {
+          userId: user.id,
+        },
+      },
+      products: {
+        create: {
+          productId: product1.id,
+        },
+      },
+    },
+  });
 
-    // ----------------- User Usage -----------------
-    await prisma.userUsage.upsert({
-      where: { userId: user.id },
-      update: {},
-      create: {
-        userId: user.id,
-        customers: 0,
-        leads: 0,
-        landingPages: 0,
-        storageUsed: 0,
-        teamMembers: 1
-      }
-    })
-  }
-
-  // ----------------- Sample Products -----------------
-  const products = [
-    { name: 'Product A', description: 'First product', price: 100 },
-    { name: 'Product B', description: 'Second product', price: 200 },
-    { name: 'Product C', description: 'Third product', price: 300 }
-  ]
-
-  for (const p of products) {
-    await prisma.product.upsert({
-      where: { id: p.name }, // using name as unique key for simplicity
-      update: {},
-      create: {
-        id: p.name,
-        name: p.name,
-        description: p.description,
-        price: p.price,
-        status: 'active'
-      }
-    })
-  }
-
-  console.log('✅ Database seeded successfully!')
+  console.log({ user, product1, product2, landingPage });
 }
 
 main()
-  .catch(e => {
-    console.error(e)
-    process.exit(1)
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

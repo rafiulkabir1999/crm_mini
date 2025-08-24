@@ -1,23 +1,52 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import fs from "fs/promises";
-import path from "path";
+import prisma from "@/lib/prisma";
+import { verifyToken } from "@/lib/jwt"; // verify should return the decoded payload
 
-const prisma = new PrismaClient();
-// GET all products with images
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    // 1️⃣ Get token from Authorization header
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // 2️⃣ Verify and decode token
+    let decoded: any;
+    try {
+      decoded = await verifyToken(token); // should return payload like { id, email }
+    } catch (err) {
+      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
+    }
+
+    // 3️⃣ Extract user id from payload
+    const userId = decoded?.id;
+    if (!userId) {
+      return NextResponse.json({ error: decoded }, { status: 401 });
+    }
+
+    // 4️⃣ Fetch only products belonging to this user
     const products = await prisma.product.findMany({
-      include: { images: true }, // include images
+      where: {
+        owners: {
+          some: { userId }, // assumes a relation `owners` table linking products ↔ users
+        },
+      },
+      include: { images: true },
       orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(products);
   } catch (err: any) {
     console.error("API ERROR:", err);
-    return NextResponse.json({ error: "Something went wrong", detail: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Something went wrong", detail: err.message },
+      { status: 500 }
+    );
   }
 }
+
 
 // export async function POST(req: Request) {
 //   try {

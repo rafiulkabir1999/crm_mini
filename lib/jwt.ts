@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken"
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret" 
 console.log(JWT_SECRET,"JWT_SECRET_Generate")
 // Generate token
-export function generateToken(payload: object, expiresIn: string | number = "1h") {
+export function generateToken(payload: object) {
   return jwt.sign(payload, JWT_SECRET)
 }
 
@@ -23,5 +23,5 @@ export function verifyToken(token: string) {
 
 // Decode without verifying (useful for debugging)
 export function decodeToken(token: string) {
-  return jwt.decode(token)
+  return jwt.decode(token,)
 }
