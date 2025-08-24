@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyToken, decodeToken } from "@/lib/jwt";
+import { decode } from "punycode";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,6 +11,7 @@ export async function GET(request: NextRequest) {
     // 1️⃣ Get token from Authorization header
     const authHeader = request.headers.get("authorization");
     console.log("🔹 Authorization header:", authHeader);
+      // return NextResponse.json({ error: authHeader }, { status: 200 });
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       console.log("❌ No token provided");
@@ -17,10 +19,14 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.substring(7); // remove "Bearer " prefix
+          // return NextResponse.json({ token: token }, { status: 200 });
+
     console.log("🔹 Token extracted:", token);
 
     // 2️⃣ Verify token (checks signature and expiration)
-    const decoded = verifyToken(token) as { userId: string; exp: number };
+    const decoded = verifyToken(token) ;
+          // return NextResponse.json({ error: decoded }, { status: 200 });
+
     if (!decoded) {
       console.log("❌ Token verification failed or expired");
       return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { apiService } from "@/lib/api";
+import { productservice } from "@/lib/services/product-service";
 
 export default function CreateProductPage() {
   const [loading, setLoading] = useState(false);
@@ -30,21 +30,29 @@ export default function CreateProductPage() {
     const form = e.currentTarget;
     const formData = new FormData(form);
 
-    // Convert FormData to plain object for apiService
+    // Convert FormData to plain object
     const productData: any = {
       name: formData.get("name"),
       description: formData.get("description"),
       price: parseFloat(formData.get("price") as string),
-      userId, // use ID from localStorage
-      images: formData.getAll("images"), // array of files
+
+      // 👇 handle relation correctly
+      owners: [
+        { userId }, // productservice will send this as nested create
+      ],
+
+      // Convert uploaded files into image objects
+      images: (formData.getAll("images") as File[]).map((file) => ({
+        url: URL.createObjectURL(file), // for now, fake URL (replace with actual upload URL later)
+      })),
     };
 
     try {
-      const newProduct = await apiService.createProduct(productData);
-      console.log("Created Product:", newProduct);
+      const newProduct = await productservice.createProduct(productData);
+      console.log("✅ Created Product:", newProduct);
       form.reset();
     } catch (err) {
-      console.error("Error creating product:", err);
+      console.error("❌ Error creating product:", err);
     } finally {
       setLoading(false);
     }
@@ -66,15 +74,26 @@ export default function CreateProductPage() {
 
         <div>
           <Label>Price</Label>
-          <Input name="price" type="number" step="0.01" placeholder="Price" required />
+          <Input
+            name="price"
+            type="number"
+            step="0.01"
+            placeholder="Price"
+            required
+          />
         </div>
 
         <div>
           <Label>Images (PNG/JPG/JPEG)</Label>
-          <Input name="images" type="file" accept="image/png, image/jpeg" multiple required />
+          <Input
+            name="images"
+            type="file"
+            accept="image/png, image/jpeg"
+            multiple
+          />
         </div>
 
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading} className="w-full">
           {loading ? "Creating..." : "Create Product"}
         </Button>
       </form>

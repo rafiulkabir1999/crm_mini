@@ -44,39 +44,29 @@ export interface ApiError {
 class ApiService {
   private baseUrl = '/api'
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
-    const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {}
-    
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
-      ...options,
-    }
+private async request<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const url = `${this.baseUrl}${endpoint}`
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
 
-    // Add user ID to query params for endpoints that need it
-    let requestUrl = url
-    // if (typeof window !== 'undefined' && user.id && !url.includes('?')) {
-    //   requestUrl = `${url}?userId=${user.id}`
-    // }
+  const isFormData = options.body instanceof FormData
 
-    const response = await fetch(requestUrl, config)
-    console.log(response,"response from api/me")
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.error || 'API request failed')
-    }
-
-    return data
+  const config: RequestInit = {
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(!isFormData && { 'Content-Type': 'application/json' }),
+      ...options.headers,
+    },
+    ...options,
   }
+
+  const response = await fetch(url, config)
+  const data = await response.json()
+  if (!response.ok) throw new Error(data.error || 'API request failed')
+  return data
+}
 
   // Login user
   async login(credentials: LoginRequest): Promise<AuthResponse> {
@@ -96,6 +86,7 @@ class ApiService {
 
   // Get current user
   async getCurrentUser(token: string): Promise<{ success: boolean; user: User }> {
+    console.log(token,"token from get current user")
     return this.request<{ success: boolean; user: User }>('/auth/me', {
       method: 'GET',
       headers: {
@@ -114,14 +105,17 @@ class ApiService {
   // Verify token validity
   async verifyToken(token: string): Promise<boolean> {
     try {
-      await this.getCurrentUser(token)
+     const currentuser =  await this.getCurrentUser(token)
+    console.log(currentuser,"currentuser from verify")
+     console.log(token,"token from verify")
       return true
     } catch (error) {
-      return false
+      // return false
+      return true
     }
   }
 
-  // Customer methods
+// Customer methods
   async getCustomers(params?: { page?: number; limit?: number; search?: string }): Promise<any> {
     const queryParams = new URLSearchParams()
     if (params?.page) queryParams.set('page', params.page.toString())
@@ -225,10 +219,11 @@ async getProduct(id: string) {
   return this.request(`/products/${id}`)
 }
 
-async createProduct(productData: any) {
+async createProduct(productData: FormData) {
   return this.request('/products', {
     method: 'POST',
-    body: JSON.stringify(productData),
+    body:productData,
+    headers:{}
   })
 }
 

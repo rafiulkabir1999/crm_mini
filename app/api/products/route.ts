@@ -68,57 +68,59 @@ export async function GET() {
 // }
 
 
+
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    console.log(formData,"formData*********")
+
     const name = formData.get("name") as string;
-    const description = (formData.get("description") as string) || null;
-    const price = parseFloat(formData.get("price") as string);
-    const status = (formData.get("status") as string) || "active";
-    const userId = formData.get("userId") as string; // logged-in user ID
+    const description = formData.get("description") as string;
+    const price = Number(formData.get("price"));
 
-    if (!userId) {
-      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
-    }
-
-    // Handle multiple images
-    const files = formData.getAll("images").filter(f => f instanceof Blob) as Blob[];
-    const uploadDir = path.join(process.cwd(), "public/uploads");
-    await fs.mkdir(uploadDir, { recursive: true });
-
-    const urls: string[] = [];
-
-    for (const file of files) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      let ext = ".jpg";
-      if ("type" in file) {
-        if (file.type === "image/png") ext = ".png";
-        else if (file.type === "image/jpeg") ext = ".jpg";
+    // Parse owners
+    const owners: { userId: string }[] = [];
+    for (const [key, value] of formData.entries()) {
+      const match = key.match(/^owners\[(\d+)\]\[userId\]$/);
+      if (match) {
+        const index = Number(match[1]);
+        owners[index] = { userId: value as string };
       }
-      const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`;
-      await fs.writeFile(path.join(uploadDir, filename), buffer);
-      urls.push(`/uploads/${filename}`);
     }
 
-    // Create product with images and user association
+    // Parse images
+    const images: { url: string }[] = [];
+    for (const [key, value] of formData.entries()) {
+      const match = key.match(/^images\[(\d+)\]\[url\]$/);
+      if (match) {
+        const index = Number(match[1]);
+        images[index] = { url: value as string };
+      }
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
         description,
         price,
-        status,
-        userId,
-        images: {
-          create: urls.map(url => ({ url })),
+        status: "active",
+        images: { create: images },
+        owners: {
+          create: owners.map((o) => ({
+            user: { connect: { id: o.userId } },
+          })),
         },
       },
-      include: { images: true },
+      include: {
+        images: true,
+        owners: { include: { user: true } },
+      },
     });
 
     return NextResponse.json(product);
-  } catch (err: any) {
-    console.error("API ERROR:", err);
-    return NextResponse.json({ error: "Something went wrong", detail: err.message }, { status: 500 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
   }
 }
+
