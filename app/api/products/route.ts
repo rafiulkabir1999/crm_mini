@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyToken } from "@/lib/jwt"; // verify should return the decoded payload
+import { verifyToken ,decodeToken } from "@/lib/jwt"; // verify should return the decoded payload
 
 export async function GET(req: Request) {
   try {
     // 1️⃣ Get token from Authorization header
     const authHeader = req.headers.get("authorization");
+          return NextResponse.json("authHeader",authHeader);
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -15,13 +17,16 @@ export async function GET(req: Request) {
     // 2️⃣ Verify and decode token
     let decoded: any;
     try {
-      decoded = await verifyToken(token); // should return payload like { id, email }
+      decoded = await decodeToken(token); // should return payload like { id, email }
+            return NextResponse.json({ error: decoded }, { status: 200 });
+
     } catch (err) {
       return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
     }
 
     // 3️⃣ Extract user id from payload
-    const userId = decoded?.id;
+    const userId = decoded?.userId;
+    console.log(userId,decoded,"userId *************************************************")
     if (!userId) {
       return NextResponse.json({ error: decoded }, { status: 401 });
     }

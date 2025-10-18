@@ -20,6 +20,7 @@ interface Product {
 
 export default function ProductListPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  console.log(products,"products")
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
